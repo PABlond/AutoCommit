@@ -11,7 +11,9 @@ setuptools.setup(
     description="A script to make commit/push easier",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    install_requires=["numpy", "dulwich", "inquirer"],
     url="https://github.com/PABlond/AutoCommit",
+    packages=setuptools.find_packages(),
     py_modules=['autocommit'],
     entry_points={
         "console_scripts": [

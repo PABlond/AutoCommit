@@ -82,7 +82,6 @@ class GitUiOpts:
                 password = self.simple_input(content="Password : ")
                 self.remote_url_credentials = "//{0}:{1}@".format(
                     username, password).join(self.remote_url.split('//'))
-                print(self.remote_url_credentials)
                 self.push_once()
             finally:
                 is_pushed = True
@@ -128,7 +127,7 @@ def main():
         ap = GitUiOpts(path=".")
         if find_executable("git") is not None:
             username, mail = ap.get_committer()
-            ap.committer = "{} <{}>".format(username, mail)
+            ap.committer = "{0} <{1}>".format(username, mail)
         else:
             ap.committer = ap.simple_input(
                 content="Who is the author ?\n eg: \"PABlond <pierre-alexis.blond@live.fr>\"")
