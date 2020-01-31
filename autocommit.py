@@ -80,11 +80,8 @@ class GitUiOpts:
             except:
                 username = self.simple_input(content="Username : ")
                 password = self.simple_input(content="Password : ")
-                print("{0}:{1}@".format(
-                    username, password))
-                self.remote_url_credentials = "{0}:{1}@".format(
+                self.remote_url_credentials = "//{0}:{1}@".format(
                     username, password).join(self.remote_url.split('//'))
-                print(self.remote_url_credentials)
                 self.push()
             finally:
                 is_pushed = True
