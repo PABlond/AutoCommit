@@ -10,18 +10,20 @@ import dulwich
 import numpy as np
 
 
-commit_styles = ['All in one commit', "Every file in one commit"]
+commit_styles = ['All files in one commit', "Every file in a single commit"]
+all_files = "*ALL"
 
 
-class GitOpts:
-    def __init__(self, path, committer, remote_target="origin"):
-        self.committer = committer
+class GitUiOpts:
+    def __init__(self, path, remote_target="origin"):
+        self.committer = None
         self.repo_path = path
         self.repo = Repo(self.repo_path)
         self.unstaged = []
         self.staged = []
         self.remote_url = self.repo.get_config().get(
             ('remote', remote_target), 'url').decode()
+        self.remote_url_credentials = None
 
     def get_unstaged(self):
         status = porcelain.status(self.repo.path)
@@ -64,43 +66,54 @@ class GitOpts:
             )
             print(commit_title)
 
-    def push(self):
+    def push_once(self):
+        remote_url = self.remote_url if self.remote_url_credentials is None else self.remote_url_credentials
         porcelain.push(
-            self.repo, remote_location=self.remote_url, refspecs="master")
+            self.repo, remote_location=remote_url, refspecs="master")
         self.staged = []
 
+    def push(self):
+        is_pushed = False
+        while is_pushed is False:
+            try:
+                self.push()
+            except:
+                username = self.simple_input(content="Username : ")
+                password = self.simple_input(content="Password : ")
+                self.remote_url_credentials = "{0}:{1}@".format(
+                    username, password).join(self.remote_url.split('//'))
+            finally:
+                is_pushed = True
 
-def get_committer():
-    username, mail = "", ""
-    result = subprocess.run(
-        ["git", "config", "--list"], stdout=subprocess.PIPE)
-    for row in result.stdout.decode().split("\n"):
-        row_formatted = row.split("=")
-        if len(row_formatted) == 2:
-            row_key = row_formatted[0]
-            row_value = row_formatted[1]
-            if row_key == "user.name":
-                username = row_value
-            elif row_key == "user.email":
-                mail = row_value
+    def get_committer(self):
+        username, mail = "", ""
+        result = subprocess.run(
+            ["git", "config", "--list"], stdout=subprocess.PIPE)
+        for row in result.stdout.decode().split("\n"):
+            row_formatted = row.split("=")
+            if len(row_formatted) == 2:
+                row_key = row_formatted[0]
+                row_value = row_formatted[1]
+                if row_key == "user.name":
+                    username = row_value
+                elif row_key == "user.email":
+                    mail = row_value
 
-    return username, mail
+        return username, mail
 
+    def simple_input(self, content):
+        print(content)
+        return input()
 
-def simple_input(content):
-    print(content)
-    return input()
-
-
-def select_input(keyword, message, choices):
-    questions = [
-        inquirer.List(keyword,
-                      message=message,
-                      choices=choices,
-                      ),
-    ]
-    answers = inquirer.prompt(questions)
-    return answers[keyword]
+    def select_input(self, keyword, message, choices):
+        questions = [
+            inquirer.List(keyword,
+                          message=message,
+                          choices=choices,
+                          ),
+        ]
+        answers = inquirer.prompt(questions)
+        return answers[keyword]
 
 
 def sys_exit(signum, frame):
@@ -110,28 +123,26 @@ def sys_exit(signum, frame):
 def main():
     signal.signal(signal.SIGTSTP, sys_exit)
     while True:
-        committer = None
+        ap = GitUiOpts(path=".")
         if find_executable("git") is not None:
-            username, mail = get_committer()
-            committer = "{} <{}>".format(username, mail)
+            username, mail = ap.get_committer()
+            ap.committer = "{} <{}>".format(username, mail)
         else:
-            committer = simple_input(
+            ap.committer = ap.simple_input(
                 content="Who is the author ?\n eg: \"PABlond <pierre-alexis.blond@live.fr>\"")
 
-        print(committer)
-        ap = GitOpts(path=".", committer=committer)
         ap.get_unstaged()
 
         if len(ap.unstaged) == 0:
             sys.exit()
 
-        file_to_commit = select_input(
-            keyword="file", message="What file do you want to commit?", choices=['*ALL'] + ap.unstaged)
-        if file_to_commit == "*ALL":
-            commit_style = select_input(
+        file_to_commit = ap.select_input(
+            keyword="file", message="What file do you want to commit?", choices=[all_files] + ap.unstaged)
+        if file_to_commit == all_files:
+            commit_style = ap.select_input(
                 keyword="style", message="How do you want to commit unstaged files?", choices=commit_styles)
             if commit_style == commit_styles[0]:
-                title = simple_input(
+                title = ap.simple_input(
                     content="Choose a title for your commit : ")
                 for filepath in ap.unstaged:
                     ap.stage_file(filepath=filepath)
