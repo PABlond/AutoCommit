@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="autocommit",  # Replace with your own username
+    name="autocommit",
     version="0.0.1",
     author="Pierre-Alexis Blond",
     author_email="pierre-alexis.blond@live.fr",
