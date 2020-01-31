@@ -70,10 +70,6 @@ class GitOpts:
         self.staged = []
 
 
-def is_git():
-    return find_executable("git") is not None
-
-
 def get_committer():
     username, mail = "", ""
     result = subprocess.run(
@@ -96,50 +92,31 @@ def simple_input(content):
     return input()
 
 
-def set_committer():
-    return simple_input(
-        content="Who is the author ?\n eg: \"PABlond <pierre-alexis.blond@live.fr>\"")
-
-
-def files_to_commit(unstaged_files):
+def select_input(keyword, message, choices):
     questions = [
-        inquirer.List('file',
-                      message="What file do you want to commit?",
-                      choices=['*ALL'] + unstaged_files,
+        inquirer.List(keyword,
+                      message=message,
+                      choices=choices,
                       ),
     ]
     answers = inquirer.prompt(questions)
-    return answers["file"]
+    return answers[keyword]
 
 
-def commit_all_style():
-    questions = [
-        inquirer.List('style',
-                      message="How do you want to commit unstaged files?",
-                      choices=commit_styles,
-                      ),
-    ]
-    answers = inquirer.prompt(questions)
-    return answers["style"]
-
-
-def get_commit_title():
-    return simple_input(content="Choose a title for your commit : ")
-
-
-def handler(signum, frame):
+def sys_exit(signum, frame):
     sys.exit()
 
 
 def main():
-    signal.signal(signal.SIGTSTP, handler)
+    signal.signal(signal.SIGTSTP, sys_exit)
     while True:
         committer = None
-        if is_git():
+        if find_executable("git") is not None:
             username, mail = get_committer()
             committer = "{} <{}>".format(username, mail)
         else:
-            committer = set_committer()
+            committer = simple_input(
+                content="Who is the author ?\n eg: \"PABlond <pierre-alexis.blond@live.fr>\"")
 
         print(committer)
         ap = GitOpts(path=".", committer=committer)
@@ -148,11 +125,14 @@ def main():
         if len(ap.unstaged) == 0:
             sys.exit()
 
-        file_to_commit = files_to_commit(unstaged_files=ap.unstaged)
+        file_to_commit = select_input(
+            keyword="file", message="What file do you want to commit?", choices=['*ALL'] + ap.unstaged)
         if file_to_commit == "*ALL":
-            commit_style = commit_all_style()
+            commit_style = select_input(
+                keyword="style", message="How do you want to commit unstaged files?", choices=commit_styles)
             if commit_style == commit_styles[0]:
-                title = get_commit_title()
+                title = simple_input(
+                    content="Choose a title for your commit : ")
                 for filepath in ap.unstaged:
                     ap.stage_file(filepath=filepath)
                 ap.commit_all_files(commit_title=title)
@@ -165,6 +145,7 @@ def main():
         else:
             ap.commit_file(filepath=file_to_commit)
             ap.push()
+
 
 if __name__ == '__main__':
     main()
