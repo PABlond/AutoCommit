@@ -82,6 +82,7 @@ class GitUiOpts:
                 password = self.simple_input(content="Password : ")
                 self.remote_url_credentials = "{0}:{1}@".format(
                     username, password).join(self.remote_url.split('//'))
+                self.push()
             finally:
                 is_pushed = True
 
