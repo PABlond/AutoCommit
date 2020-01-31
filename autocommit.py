@@ -76,14 +76,14 @@ class GitUiOpts:
         is_pushed = False
         while is_pushed is False:
             try:
-                self.push()
+                self.push_once()
             except:
                 username = self.simple_input(content="Username : ")
                 password = self.simple_input(content="Password : ")
                 self.remote_url_credentials = "//{0}:{1}@".format(
                     username, password).join(self.remote_url.split('//'))
                 print(self.remote_url_credentials)
-                self.push()
+                self.push_once()
             finally:
                 is_pushed = True
 
